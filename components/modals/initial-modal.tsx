@@ -1,8 +1,9 @@
-"use client"
+"use client";
 
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { useState } from "react";
 
 import {
   Dialog,
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { FileUpload } from "@/components/file-upload";
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -29,28 +31,53 @@ const formSchema = z.object({
   }),
   imageUrl: z.string().min(1, {
     message: "Изображение сервера обязательно."
-  })
-})
+  }),
+});
 
+type FormValues = z.infer<typeof formSchema>;
 
 export const InitialModal = () => {
-  const form  = useForm({
+  const [imageFile, setImageFile] = useState<File | undefined>(undefined);
+
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
       imageUrl: "",
-    }
+    },
   });
 
   const isLoading = form.formState.isSubmitting;
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    console.log(values);
-  }
+  const onSubmit = async (values: FormValues) => {
+    if (!imageFile) {
+      form.setError("imageUrl", { message: "Изображение обязательно" });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", values.name);
+    formData.append("imageFile", imageFile);
+
+    const res = await fetch("/api/servers/create", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      console.error(data);
+      return;
+    }
+
+    console.log("server created", data);
+    form.reset();
+    setImageFile(undefined);
+  };
 
   return (
     <Dialog open>
-      <DialogContent className="bg-white text-black p-0 overflow-hidden">
+      <DialogContent className="bg-white text-black p-0 overflow-hidden max-w-md">
         <DialogHeader className="pt-8 px-6">
           <DialogTitle className="text-2xl text-center font-bold">
             Настройте свой сервер
@@ -63,10 +90,27 @@ export const InitialModal = () => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
             <div className="space-y-8 px-6">
               <div className="flex items-center justify-center text-center">
-                TODO: Загрузка изображения
+                <FormField
+                  control={form.control}
+                  name="imageUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <FileUpload
+                          value={field.value}
+                          onChange={(file, previewUrl) => {
+                            setImageFile(file);
+                            field.onChange(previewUrl || "");
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
 
-              <FormField 
+              <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
@@ -75,7 +119,7 @@ export const InitialModal = () => {
                       Название сервера
                     </FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         disabled={isLoading}
                         className="bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0"
                         placeholder="Введите название сервера"
@@ -88,13 +132,13 @@ export const InitialModal = () => {
               />
             </div>
             <DialogFooter className="bg-gray-100 px-6 py-4">
-              <Button variant="primary" disabled={isLoading}>
-                Создать
+              <Button variant="primary" disabled={isLoading} className="w-full">
+                {isLoading ? "Создаётся..." : "Создать"}
               </Button>
             </DialogFooter>
           </form>
         </Form>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
