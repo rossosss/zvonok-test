@@ -6,7 +6,7 @@ import Image from "next/image";
 
 interface FileUploadProps {
   onChange: (file?: File, previewUrl?: string) => void;
-  value?: string; // url превью из формы
+  value?: string;
 }
 
 export const FileUpload = ({ onChange, value }: FileUploadProps) => {

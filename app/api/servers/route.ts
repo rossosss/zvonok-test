@@ -1,22 +1,40 @@
 import { v4 as uuidv4 } from "uuid";
 import { NextResponse } from "next/server";
+import { promises as fs } from "fs";
+import path from "path";
 
 import { currentProfile } from "@/lib/current-profile";
 import { pool } from "@/lib/db";
 
 export async function POST(req: Request) {
   try {
-    const { name, imageUrl } = await req.json();
-
     const profile = await currentProfile();
     if (!profile) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+    
+    // ! Нужно проверить на новом сервере
+    const formData = await req.formData();
+    const name = formData.get("name") as string | null;
+    const imageFile = formData.get("imageFile") as File | null;
 
-    if (!name || !imageUrl) {
-      return new NextResponse("Missing name or imageUrl", { status: 400 });
+    if (!name || !imageFile) {
+      return new NextResponse("Missing name or imageFile", { status: 400 });
     }
 
+    const bytes = await imageFile.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    const ext = imageFile.name.split(".").pop() || "png";
+    const filename = `server-${profile.id}-${Date.now()}.${ext}`;
+
+    const uploadDir = path.join(process.cwd(), "public", "uploads");
+    await fs.mkdir(uploadDir, { recursive: true });
+
+    const filePath = path.join(uploadDir, filename);
+    await fs.writeFile(filePath, buffer);
+
+    const imageUrl = `/uploads/${filename}`;
     const inviteCode = uuidv4();
 
     const serverResult = await pool.query(
