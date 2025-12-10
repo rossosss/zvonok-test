@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/file-upload";
 import { useRouter } from "next/navigation";
+import { useModal } from "@/hooks/use-modal-store";
 
 const formSchema = z.object({
   name: z.string().min(1, {
@@ -38,9 +39,12 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const InitialModal = () => {
+export const CreateServerModal = () => {
   const [imageFile, setImageFile] = useState<File | undefined>(undefined);
+  const { isOpen, onClose, type } = useModal();
   const router = useRouter();
+
+  const isModalOpen = isOpen && type === "createServer";
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -72,8 +76,13 @@ export const InitialModal = () => {
     }
   };
 
+  const handleClose = () => {
+    form.reset;
+    onClose();
+  }
+
   return (
-    <Dialog open>
+    <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-white text-black p-0 overflow-hidden max-w-md">
         <DialogHeader className="pt-8 px-6">
           <DialogTitle className="text-2xl text-center font-bold">
