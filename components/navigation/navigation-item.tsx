@@ -47,7 +47,8 @@ export const NavigationItem = ({
             <Image
               fill
               src={imageUrl}
-              alt="Канал"
+              alt="Сервер"
+              className="object-cover"
             />
           ) : null}
         </div>
