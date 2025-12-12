@@ -18,7 +18,7 @@ CREATE TABLE servers (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name VARCHAR(100) NOT NULL,
   image_url TEXT,
-  invite_code TEXT,
+  invite_code TEXT UNIQUE,
   profile_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
