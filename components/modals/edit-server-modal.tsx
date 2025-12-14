@@ -4,7 +4,7 @@ import axios from "axios";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Dialog,
@@ -39,12 +39,13 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const CreateServerModal = () => {
+export const EditServerModal = () => {
   const [imageFile, setImageFile] = useState<File | undefined>(undefined);
-  const { isOpen, onClose, type } = useModal();
+  const { isOpen, onClose, type, data } = useModal();
   const router = useRouter();
 
-  const isModalOpen = isOpen && type === "createServer";
+  const isModalOpen = isOpen && type === "editServer";
+  const { server } = data;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -54,31 +55,53 @@ export const CreateServerModal = () => {
     },
   });
 
+  useEffect(() => {
+    if (server?.name) {
+      form.setValue("name", server.name);
+    }
+    if (server?.image_url) {
+      form.setValue("imageUrl", server.image_url);
+    }
+  }, [server, form]);
+
   const isLoading = form.formState.isSubmitting;
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      if (!imageFile) {
-      form.setError("imageUrl", { message: "Изображение обязательно" });
-      return;
-    }
-      const formData = new FormData();
-      formData.append("name", values.name);
-      formData.append("imageFile", imageFile as File);
-      await axios.post("/api/servers", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+  try {
+    if (!imageFile && values.imageUrl) {
+      await axios.patch(`/api/servers/${server?.id}`, {
+        name: values.name,
+        imageUrl: values.imageUrl,
       });
 
       router.refresh();
-      form.reset();
       onClose();
-    } catch (error) {
-      console.log(error);
+      return;
     }
-  };
+
+    if (!imageFile && !values.imageUrl) {
+      form.setError("imageUrl", { message: "Изображение обязательно" });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", values.name);
+    if (imageFile) {
+      formData.append("imageFile", imageFile);
+    }
+
+    await axios.patch(`/api/servers/${server?.id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    router.refresh();
+    onClose();
+  } catch (error) {
+    console.log(error);
+  }
+};
 
   const handleClose = () => {
-    form.reset();
     onClose();
   }
 
@@ -87,7 +110,7 @@ export const CreateServerModal = () => {
       <DialogContent className="bg-white text-black p-0 overflow-hidden max-w-md">
         <DialogHeader className="pt-8 px-6">
           <DialogTitle className="text-2xl text-center font-bold">
-            Создайте свой сервер
+            Настройте свой сервер
           </DialogTitle>
           <DialogDescription className="text-center text-zinc-500">
             Придайте своему серверу индивидуальность, присвоив ему имя и изображение. Вы всегда сможете изменить их позже.
@@ -140,7 +163,7 @@ export const CreateServerModal = () => {
             </div>
             <DialogFooter className="bg-gray-100 px-6 py-4">
               <Button variant="primary" disabled={isLoading} className="w-full">
-                {isLoading ? "Создаётся..." : "Создать"}
+                {isLoading ? "Обновление..." : "Сохранить"}
               </Button>
             </DialogFooter>
           </form>

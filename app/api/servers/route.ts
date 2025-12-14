@@ -13,7 +13,6 @@ export async function POST(req: Request) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
     
-    // ! Нужно проверить на новом сервере
     const formData = await req.formData();
     const name = formData.get("name") as string | null;
     const imageFile = formData.get("imageFile") as File | null;
