@@ -9,7 +9,7 @@ export async function PATCH(
   context: { params: Promise<{ serverId: string }> }
 ) {
   try {
-    const { serverId } = await context.params;   // 👈 достаём serverId
+    const { serverId } = await context.params;
     const profile = await currentProfile();
 
     if (!profile) {
