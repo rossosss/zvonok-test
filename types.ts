@@ -1,5 +1,11 @@
 export type MemberRole = "ADMIN" | "MODERATOR" | "GUEST";
 
+export enum ChannelType {
+  TEXT = "TEXT",
+  AUDIO = "AUDIO", 
+  VIDEO = "VIDEO"
+}
+
 export interface DBServer {
   id: string;
   name: string;
@@ -29,7 +35,16 @@ export interface DBProfile {
   updated_at: Date;
 }
 
-// Аналог Prisma-типа
+export interface DBChannel {
+  id: string;
+  name: string;
+  type: ChannelType;
+  profile_id: string;
+  server_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export type ServerWithMembersWithProfiles = DBServer & {
   members: (DBMember & { profile: DBProfile })[];
 };
