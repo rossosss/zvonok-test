@@ -21,7 +21,6 @@ const InviteCodePage = async ({ params }: InviteCodePageProps) => {
     return redirect("/");
   }
 
-  // 1) уже есть такой сервер у пользователя?
   const existingServerResult = await pool.query(
     `
     SELECT s.*
@@ -40,7 +39,6 @@ const InviteCodePage = async ({ params }: InviteCodePageProps) => {
     redirect(`/servers/${existingServer.id}`);
   }
 
-  // 2) находим сервер по инвайт-коду
   const serverResult = await pool.query(
     `SELECT * FROM servers WHERE invite_code = $1 LIMIT 1`,
     [inviteCode],
