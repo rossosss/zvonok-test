@@ -3,11 +3,26 @@ import { pool } from "@/lib/db";
  
 import { redirect } from "next/navigation";
 import { ServerHeader } from "./server-header";
-import { DBMember, DBProfile, MemberRole, ServerWithMembersWithProfiles } from "@/types";
+import { ChannelType, DBChannel, DBMember, DBProfile, MemberRole, ServerWithMembersWithProfiles } from "@/types";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ServerSearch } from "./server-search";
+import { Hash, Mic, ShieldAlert, ShieldCheck, Video } from "lucide-react";
 
 interface ServerSidebarProps {
   serverId: string;
 }
+
+const iconMap: Record<ChannelType, React.ReactNode> = {
+  [ChannelType.TEXT]: <Hash className="mr-2 h-4 w-4" />,
+  [ChannelType.AUDIO]: <Mic className="mr-2 h-4 w-4" />,
+  [ChannelType.VIDEO]: <Video className="mr-2 h-4 w-4" />
+};
+
+const roleIconMap: Record<MemberRole, React.ReactNode> = {
+  GUEST: null,
+  MODERATOR: <ShieldCheck className="h-4 w-4 mr-2 text-indigo-500" />,
+  ADMIN: <ShieldAlert className="h-4 w-4 mr-2 text-rose-500" />
+};
 
 export const ServerSidebar = async ({
   serverId
@@ -28,11 +43,13 @@ export const ServerSidebar = async ({
   const serverRow = serverResult.rows[0];
   if (!serverRow) return redirect("/");
 
-  const channelsResult = await pool.query(
-    `SELECT *
-     FROM channels
-     WHERE server_id = $1
-     ORDER BY created_at ASC`,
+  const channelsResult = await pool.query<DBChannel>(
+    `
+      SELECT *
+      FROM channels
+      WHERE server_id = $1
+      ORDER BY created_at ASC
+    `,
     [serverRow.id],
   );
   const channels = channelsResult.rows;
@@ -94,12 +111,58 @@ export const ServerSidebar = async ({
   );
   const role = selfMember?.role;
 
+  const otherMembers = server.members.filter(
+  (m) => m.profile_id !== profile.id,
+);
+
   return (
     <div className="flex flex-col h-full text-primary w-full dark:bg-[#2B2B31] bg-[#F2F3F5]">
       <ServerHeader 
         server={server}
         role={role}
       />
+      <ScrollArea className="flex-1 px-3">
+        <div className="mt-2">
+          <ServerSearch data={[
+            {
+              label: "Текстовые каналы",
+              type: "channel",
+              data: textChannels?.map((channel) => ({
+                id: channel.id,
+                name: channel.name,
+                icon: iconMap[channel.type],
+              }))
+            },
+            {
+              label: "Аудио каналы",
+              type: "channel",
+              data: audioChannels?.map((channel) => ({
+                id: channel.id,
+                name: channel.name,
+                icon: iconMap[channel.type],
+              }))
+            },
+            {
+              label: "Видео каналы",
+              type: "channel",
+              data: videoChannels?.map((channel) => ({
+                id: channel.id,
+                name: channel.name,
+                icon: iconMap[channel.type],
+              }))
+            },
+            {
+              label: "Участники",
+              type: "member",
+              data: otherMembers.map((member) => ({
+              id: member.id,
+              name: member.profile.name,
+              icon: roleIconMap[member.role],
+            }))
+            },
+          ]}/>
+        </div>
+      </ScrollArea>
     </div>
    )
 }
