@@ -5,6 +5,56 @@ import path from "path";
 import { currentProfile } from "@/lib/current-profile";
 import { pool } from "@/lib/db";
 
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ serverId: string }> }
+) {
+  try {
+    const { serverId } = await context.params;
+    const profile = await currentProfile();
+
+    if (!profile) return new NextResponse("Unauthorized", { status: 401 });
+    if (!serverId) return new NextResponse("Server ID Missing", { status: 400 });
+
+    const serverCheck = await pool.query(
+      `SELECT profile_id FROM servers WHERE id = $1`,
+      [serverId]
+    );
+
+    if (serverCheck.rows.length === 0) {
+      return new NextResponse("Server not found", { status: 404 });
+    }
+
+    if (serverCheck.rows[0].profile_id !== profile.id) {
+      return new NextResponse("Not server owner", { status: 403 });
+    }
+
+    await pool.query(
+      `DELETE FROM servers WHERE id = $1`,
+      [serverId]
+    );
+
+    const serversResult = await pool.query(
+      `SELECT 
+         s.id, s.name, s.image_url, s.invite_code, s.profile_id,
+         s.created_at, s.updated_at,
+         m.role
+       FROM servers s
+       JOIN members m ON s.id = m.server_id
+       WHERE m.profile_id = $1
+       ORDER BY s.created_at DESC`,
+      [profile.id]
+    );
+
+    const servers = serversResult.rows
+    return NextResponse.json(servers);
+    
+  } catch (error) {
+    console.error("[SERVER_PATCH]", error);
+    return new NextResponse("Internal Error", { status: 500 });
+  }
+}
+
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ serverId: string }> }
@@ -25,7 +75,6 @@ export async function PATCH(
 
     const contentType = req.headers.get("content-type") || "";
 
-    // JSON: только имя / url
     if (contentType.includes("application/json")) {
       const { name, imageUrl } = await req.json();
 
