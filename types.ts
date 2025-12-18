@@ -1,3 +1,7 @@
+// ========================================
+// ZVONOK DATABASE TYPES
+// ========================================
+
 export type MemberRole = "ADMIN" | "MODERATOR" | "GUEST";
 
 export enum ChannelType {
@@ -18,7 +22,7 @@ export interface DBServer {
 
 export interface DBMember {
   id: string;
-  role: "ADMIN" | "MODERATOR" | "GUEST";
+  role: MemberRole;
   profile_id: string;
   server_id: string;
   created_at: Date;
@@ -45,6 +49,52 @@ export interface DBChannel {
   updated_at: Date;
 }
 
+export interface DBMessage {
+  id: string;
+  content: string;
+  file_url: string | null;
+  member_id: string;
+  channel_id: string;
+  deleted: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface DBConversation {
+  id: string;
+  member_one_id: string;
+  member_two_id: string;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface DBDirectMessage {
+  id: string;
+  content: string;
+  file_url: string | null;
+  member_id: string;
+  conversation_id: string;
+  deleted: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
 export type ServerWithMembersWithProfiles = DBServer & {
   members: (DBMember & { profile: DBProfile })[];
+};
+
+export type ChannelWithServerAndMembers = DBChannel & {
+  server: DBServer;
+  members: DBMember[];
+};
+
+export type MessageWithMemberAndChannel = DBMessage & {
+  member: DBMember & { profile: DBProfile };
+  channel: DBChannel;
+};
+
+export type FullServer = ServerWithMembersWithProfiles & {
+  channels: (DBChannel & {
+    messages: MessageWithMemberAndChannel[];
+  })[];
 };
