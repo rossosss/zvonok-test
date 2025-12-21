@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { pool } from "@/lib/db"
 import { DBChannel, DBMember } from "@/types";
 import { ChatHeader } from "@/components/chat/chat-header";
+import { ChatInput } from "@/components/chat/chat-input";
 
 interface ChannelIdPageProps {
   params: Promise<{
@@ -49,6 +50,16 @@ if(!channel || !member) {
         serverId={channel.server_id}
         type="channel"
         
+      />
+      <div className="flex-1">Сообщения</div>
+      <ChatInput
+        name={channel.name}
+        type="channel"
+        apiUrl="/api/socket/messages"
+        query={{
+          channelId: channel.id,
+          serverId: channel.server_id
+        }}
       />
     </div>
    );
