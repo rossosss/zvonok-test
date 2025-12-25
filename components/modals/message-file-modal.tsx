@@ -1,6 +1,8 @@
+// MessageFileModal.tsx - полная исправленная версия
 "use client";
 
 import axios from "axios";
+import qs from "query-string";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,68 +21,82 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FileUpload } from "@/components/file-upload";
 import { useRouter } from "next/navigation";
+import { useModal } from "@/hooks/use-modal-store";
 
 const formSchema = z.object({
-  name: z.string().min(1, {
-    message: "Название сервера обязательно."
-  }),
-  imageUrl: z.string().min(1, {
-    message: "Изображение сервера обязательно."
+  fileUrl: z.string().min(1, {
+    message: "Файл обязателен."
   }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-export const InitialModal = () => {
-  const [imageFile, setImageFile] = useState<File | undefined>(undefined);
+export const MessageFileModal = () => {
+  const { isOpen, onClose, type, data } = useModal();
+  const [file, setFile] = useState<File | undefined>(undefined);
   const router = useRouter();
+
+  const isModalOpen = isOpen && type === "messageFile";
+  const { apiUrl, query } = data;
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
-      imageUrl: "",
+      fileUrl: "",
     },
   });
 
+  const handleClose = () => {
+    form.reset();
+    setFile(undefined); // добавьте сброс файла
+    onClose();
+  };
+
   const isLoading = form.formState.isSubmitting;
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values: FormValues) => {
     try {
-      if (!imageFile) {
-      form.setError("imageUrl", { message: "Изображение обязательно" });
-      return;
-    }
-      const formData = new FormData();
-      formData.append("name", values.name);
-      formData.append("imageFile", imageFile as File);
-      await axios.post("/api/servers", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      if (!file) {
+        form.setError("fileUrl", { message: "Файл обязателен" });
+        return;
+      }
+      const url = qs.stringifyUrl({
+        url: apiUrl || "",
+        query
+      })
+
+      const uploadFormData = new FormData();
+      uploadFormData.append("file", file);
+      
+      const uploadResponse = await axios.post("/api/upload", uploadFormData);
+      const fileUrl = uploadResponse.data.url;
+
+      await axios.post(url, {
+        content: fileUrl || "",
+        fileUrl: fileUrl
       });
 
       router.refresh();
-      form.reset();
+      handleClose();
     } catch (error) {
       console.log(error);
     }
   };
 
   return (
-    <Dialog open>
+    <Dialog open={isModalOpen} onOpenChange={handleClose}>
       <DialogContent className="bg-white text-black p-0 overflow-hidden max-w-md">
         <DialogHeader className="pt-8 px-6">
           <DialogTitle className="text-2xl text-center font-bold">
-            Настройте свой сервер
+            Прикрепить файлы
           </DialogTitle>
           <DialogDescription className="text-center text-zinc-500">
-            Придайте своему серверу индивидуальность, присвоив ему имя и изображение. Вы всегда сможете изменить их позже.
+            Отправьте файл или изображение
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -89,16 +105,19 @@ export const InitialModal = () => {
               <div className="flex items-center justify-center text-center">
                 <FormField
                   control={form.control}
-                  name="imageUrl"
+                  name="fileUrl"
                   render={({ field }) => (
                     <FormItem>
                       <FormControl>
                         <FileUpload
-                          endpoint="serverImage"
+                          endpoint="messageFile"
                           value={field.value}
+                          name={file?.name}
+                          type={file?.type}
                           onChange={(file, previewUrl) => {
-                            setImageFile(file);
+                            setFile(file);
                             field.onChange(previewUrl || "");
+                            
                           }}
                         />
                       </FormControl>
@@ -107,31 +126,10 @@ export const InitialModal = () => {
                   )}
                 />
               </div>
-
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="uppercase text-xs font-bold text-zinc-500 dark:text-secondary/70">
-                      Название сервера
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={isLoading}
-                        className="bg-zinc-300/50 border-0 focus-visible:ring-0 text-black focus-visible:ring-offset-0"
-                        placeholder="Введите название сервера"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
             <DialogFooter className="bg-gray-100 px-6 py-4">
               <Button variant="primary" disabled={isLoading} className="w-full">
-                {isLoading ? "Создаётся..." : "Создать"}
+                {isLoading ? "Отправляется..." : "Отправить"}
               </Button>
             </DialogFooter>
           </form>
