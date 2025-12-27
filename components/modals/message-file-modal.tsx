@@ -1,4 +1,3 @@
-// MessageFileModal.tsx - полная исправленная версия
 "use client";
 
 import axios from "axios";
@@ -53,7 +52,7 @@ export const MessageFileModal = () => {
 
   const handleClose = () => {
     form.reset();
-    setFile(undefined); // добавьте сброс файла
+    setFile(undefined);
     onClose();
   };
 
