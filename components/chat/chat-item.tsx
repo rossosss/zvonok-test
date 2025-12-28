@@ -124,7 +124,7 @@ export const ChatItem = ({
         <div className="flex flex-col w-full">
           <div className="flex items-center gap-x-2">
             <div className="flex items-center">
-              <p className="font-semibold text-sm hover:underline cursor-pointer">
+              <p className="font-semibold text-sm hover:underline cursor-pointer mr-1">
                 {member.profile.name}
               </p>
               <ActionTooltip label={member.role}>

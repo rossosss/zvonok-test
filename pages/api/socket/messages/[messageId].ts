@@ -33,7 +33,6 @@ export default async function handler(
       return res.status(400).json({ error: "Channel ID missing" });
     }
 
-    // Проверяем сервер и членство
     const serverResult = await pool.query(
       `SELECT 
          s.id, s.name, s.image_url, s.invite_code, s.profile_id,
@@ -63,7 +62,6 @@ export default async function handler(
       return res.status(404).json({ error: "Server not found" });
     }
 
-    // Проверяем канал
     const channelResult = await pool.query(
       `SELECT id, name, type, profile_id, server_id, created_at, updated_at 
        FROM channels 
@@ -76,7 +74,6 @@ export default async function handler(
       return res.status(404).json({ error: "Channel not found" });
     }
 
-    // Находим member
     const memberResult = await pool.query(
       `SELECT id, role, profile_id, server_id, created_at, updated_at 
        FROM members 
@@ -89,7 +86,6 @@ export default async function handler(
       return res.status(404).json({ error: "Member not found" });
     }
 
-    // Получаем сообщение с member и profile
     const messageResult = await pool.query(
       `SELECT 
          m.id, m.content, m.file_url, m.member_id, m.channel_id, 
@@ -155,7 +151,6 @@ export default async function handler(
         ["Это сообщение удалено.", null, true, messageId]
       );
 
-      // Получаем обновленное сообщение с полными данными
       const refreshedResult = await pool.query(
         `SELECT 
            m.id, m.content, m.file_url, m.member_id, m.channel_id, 
@@ -210,7 +205,6 @@ export default async function handler(
         [content, messageId, member.id]
       );
 
-      // Получаем обновленное сообщение с полными данными
       const refreshedResult = await pool.query(
         `SELECT 
            m.id, m.content, m.file_url, m.member_id, m.channel_id, 

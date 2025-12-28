@@ -1,7 +1,7 @@
 import { currentProfile } from "@/lib/current-profile";
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { DBMessage, MemberRole, MessageWithMemberWithProfile } from "@/types";
+import { MemberRole, MessageWithMemberWithProfile } from "@/types";
 
 const MESSAGES_BATCH = 10;
 
@@ -105,8 +105,8 @@ export async function GET(req: Request) {
       role: msg.role as MemberRole,
       profile_id: msg.profile_id,
       server_id: msg.server_id,
-      created_at: msg.created_at, // используем member created_at из JOIN
-      updated_at: msg.updated_at, // используем member updated_at из JOIN
+      created_at: msg.created_at,
+      updated_at: msg.updated_at,
       profile: {
         id: msg.profile_id,
         user_id: msg.profile_user_id,
@@ -117,7 +117,7 @@ export async function GET(req: Request) {
         updated_at: msg.profile_updated_at
       }
     }
-  })) satisfies MessageWithMemberWithProfile[]; // ✅ Проверяем тип результата
+  })) satisfies MessageWithMemberWithProfile[];
 
     return NextResponse.json({
       items: formattedMessages,
