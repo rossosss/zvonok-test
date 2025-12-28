@@ -57,7 +57,6 @@ export async function GET(req: Request) {
          JOIN profiles p ON mem.profile_id = p.id
          WHERE m.channel_id = $1 
            AND m.id > $2 
-           AND m.deleted = false
          ORDER BY m.created_at DESC
          LIMIT $3`,
         [channelId, cursor, MESSAGES_BATCH + 1]
@@ -80,7 +79,6 @@ export async function GET(req: Request) {
          JOIN members mem ON m.member_id = mem.id
          JOIN profiles p ON mem.profile_id = p.id
          WHERE m.channel_id = $1 
-           AND m.deleted = false
          ORDER BY m.created_at DESC
          LIMIT $2`,
         [channelId, MESSAGES_BATCH + 1]
