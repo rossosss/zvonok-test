@@ -90,6 +90,12 @@ export interface DBDirectMessage {
   updated_at: Date;
 }
 
+export type MessageWithMemberWithProfile = DBMessage & {
+  member: DBMember & {
+    profile: DBProfile
+  }
+}
+
 export type ServerWithMembersWithProfiles = DBServer & {
   members: (DBMember & { profile: DBProfile })[];
 };
