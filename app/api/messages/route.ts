@@ -1,9 +1,29 @@
 import { currentProfile } from "@/lib/current-profile";
 import { NextResponse } from "next/server";
 import { pool } from "@/lib/db";
-import { DBMessage } from "@/types";
+import { DBMessage, MemberRole, MessageWithMemberWithProfile } from "@/types";
 
 const MESSAGES_BATCH = 10;
+
+type MessageFromQuery = {
+  id: string;
+  content: string;
+  file_url: string | null;
+  member_id: string;
+  channel_id: string;
+  deleted: boolean;
+  created_at: Date;
+  updated_at: Date;
+  role: string;
+  profile_id: string;
+  server_id: string;
+  profile_name: string;
+  profile_image_url: string | null;
+  profile_email: string | null;
+  profile_user_id: string;
+  profile_created_at: Date;
+  profile_updated_at: Date;
+};
 
 export async function GET(req: Request) {
   try {
@@ -21,11 +41,10 @@ export async function GET(req: Request) {
       return new NextResponse("Channel ID missing", { status: 400 });
     }
 
-    let messages: DBMessage[] = [];
+    let messages: MessageFromQuery[] = [];
     let nextCursor: string | null = null;
 
     if (cursor) {
-      // Запрос с курсором (следующая страница)
       const result = await pool.query(
         `SELECT 
            m.id, m.content, m.file_url, m.member_id, m.channel_id, 
@@ -46,12 +65,10 @@ export async function GET(req: Request) {
 
       messages = result.rows.slice(0, MESSAGES_BATCH);
       
-      // Проверяем наличие следующей страницы
       if (result.rows.length === MESSAGES_BATCH + 1) {
         nextCursor = result.rows[MESSAGES_BATCH].id;
       }
     } else {
-      // Первый запрос без курсора
       const result = await pool.query(
         `SELECT 
            m.id, m.content, m.file_url, m.member_id, m.channel_id, 
@@ -76,34 +93,33 @@ export async function GET(req: Request) {
       }
     }
 
-    // Трансформируем данные под тип DBMessage с вложенными объектами
-    const formattedMessages = messages.map((msg: any) => ({
-      id: msg.id,
-      content: msg.content,
-      file_url: msg.file_url,
-      member_id: msg.member_id,
-      channel_id: msg.channel_id,
-      deleted: msg.deleted,
-      created_at: msg.created_at,
-      updated_at: msg.updated_at,
-      member: {
-        id: msg.member_id,
-        role: msg.role,
-        profile_id: msg.profile_id,
-        server_id: msg.server_id,
-        created_at: msg.created_at, // member created_at
-        updated_at: msg.updated_at, // member updated_at
-        profile: {
-          id: msg.profile_id,
-          user_id: msg.profile_user_id,
-          name: msg.profile_name,
-          image_url: msg.profile_image_url,
-          email: msg.profile_email,
-          created_at: msg.profile_created_at,
-          updated_at: msg.profile_updated_at
-        }
+  const formattedMessages = messages.map((msg: MessageFromQuery) => ({
+    id: msg.id,
+    content: msg.content,
+    file_url: msg.file_url,
+    member_id: msg.member_id,
+    channel_id: msg.channel_id,
+    deleted: msg.deleted,
+    created_at: msg.created_at,
+    updated_at: msg.updated_at,
+    member: {
+      id: msg.member_id,
+      role: msg.role as MemberRole,
+      profile_id: msg.profile_id,
+      server_id: msg.server_id,
+      created_at: msg.created_at, // используем member created_at из JOIN
+      updated_at: msg.updated_at, // используем member updated_at из JOIN
+      profile: {
+        id: msg.profile_id,
+        user_id: msg.profile_user_id,
+        name: msg.profile_name,
+        image_url: msg.profile_image_url,
+        email: msg.profile_email,
+        created_at: msg.profile_created_at,
+        updated_at: msg.profile_updated_at
       }
-    }));
+    }
+  })) satisfies MessageWithMemberWithProfile[]; // ✅ Проверяем тип результата
 
     return NextResponse.json({
       items: formattedMessages,
